@@ -95,6 +95,10 @@ contract CcipWallet is OwnerIsCreator {
         _;
     }
 
+    ///////////////////////////////////////////
+    //////      Setter Functions        //////
+    //////////////////////////////////////////
+
     /**
      * @dev Whitelists a chain for transactions.
      * @notice This function can only be called by the owner.
@@ -297,11 +301,12 @@ contract CcipWallet is OwnerIsCreator {
         emit ReceivedNativeToken(msg.sender, msg.value, "");
     }
 
-    /// @notice Allows the contract owner to withdraw the entire balance of Ether from the contract.
-    /// @dev This function reverts if there are no funds to withdraw or if the transfer fails.
-    /// It should only be callable by the owner of the contract.
-    /// @param _beneficiary The address to which the Ether should be transferred.
-    function withdraw(address _beneficiary) public onlyOwner {
+    /**
+     * @notice Allows the contract owner to withdraw the entire balance of Ether from the contract.
+     * @dev This function reverts if there are no funds to withdraw or if the transfer fails. It should only be callable by the owner of the contract.
+     * @param _beneficiary The address to which the Ether should be transferred.
+     */
+    function withdraw(address _beneficiary) external onlyOwner {
         // Retrieve the balance of this contract
         uint256 amount = address(this).balance;
 
@@ -320,14 +325,16 @@ contract CcipWallet is OwnerIsCreator {
             );
     }
 
-    /// @notice Allows the owner of the contract to withdraw all tokens of a specific ERC20 token.
-    /// @dev This function reverts with a 'CcipWallet__NothingToWithdraw' error if there are no tokens to withdraw.
-    /// @param _beneficiary The address to which the tokens will be sent.
-    /// @param _token The contract address of the ERC20 token to be withdrawn.
+    /**
+     * @notice Allows the owner of the contract to withdraw all tokens of a specific ERC20 token.
+     * @dev This function reverts with a 'CcipWallet__NothingToWithdraw' error if there are no tokens to withdraw.
+     * @param _beneficiary The address to which the tokens will be sent.
+     * @param _token The contract address of the ERC20 token to be withdrawn.
+     */
     function withdrawToken(
         address _beneficiary,
         address _token
-    ) public onlyOwner {
+    ) external onlyOwner {
         // Retrieve the balance of this contract
         uint256 amount = IERC20(_token).balanceOf(address(this));
 
