@@ -295,5 +295,33 @@ contract CcipWallet is OwnerIsCreator {
         IERC20(_token).transfer(_beneficiary, amount);
     }
 
-    
+    /**
+     * @notice Getter function to get the CCIP fees of the cross-chain transcation in LINK
+     * @param _receiver The address of the recipient on the destination blockchain.
+     * @param _token token address.
+     * @param _amount token amount.
+     * @return messageId The ID of the message that was sent.
+     */
+    function getCcipFeesLink(
+        uint64 _destinationChainSelector,
+        address _receiver,
+        address _token,
+        uint256 _amount
+    )
+        external
+        view
+        onlyWhitelistedChain(_destinationChainSelector)
+        returns (uint256)
+    {
+        // Create an EVM2AnyMessage struct in memory with necessary information for sending a cross-chain message
+        // address(0) means fees are paid in native gas
+        Client.EVM2AnyMessage memory evm2AnyMessage = _buildCCIPMessage(
+            _receiver,
+            _token,
+            _amount,
+            address(0)
+        );
+
+        return router.getFee(_destinationChainSelector, evm2AnyMessage);
+    }
 }
