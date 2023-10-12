@@ -15,10 +15,10 @@ import {LinkTokenInterface} from "@chainlink/contracts/src/v0.8/interfaces/LinkT
 
 contract CcipWallet is OwnerIsCreator {
     // Custom errors to provide more descriptive revert messages.
-    error NotEnoughBalance(uint256 currentBalance, uint256 calculatedFees); // Used to make sure contract has enough balance to cover the fees.
-    error NothingToWithdraw(); // Used when trying to withdraw Ether but there's nothing to withdraw.
-    error FailedToWithdrawEth(address owner, address target, uint256 value); // Used when the withdrawal of Ether fails.
-    error DestinationChainNotWhitelisted(uint64 destinationChainSelector); // Used when the destination chain has not been whitelisted by the contract owner.
+    error CcipWallet__NotEnoughBalance(uint256 currentBalance, uint256 calculatedFees); // Used to make sure contract has enough balance to cover the fees.
+    error CcipWallet__NothingToWithdraw(); // Used when trying to withdraw Ether but there's nothing to withdraw.
+    error CcipWallet__FailedToWithdrawEth(address owner, address target, uint256 value); // Used when the withdrawal of Ether fails.
+    error CcipWallet__DestinationChainNotWhitelisted(uint64 destinationChainSelector); // Used when the destination chain has not been whitelisted by the contract owner.
     // Event emitted when the tokens are transferred to an account on another chain.
     event TokensTransferred(
         bytes32 indexed messageId,  // The unique ID of the message.
@@ -49,7 +49,7 @@ contract CcipWallet is OwnerIsCreator {
     /// @param _destinationChainSelector The selector of the destination chain.
     modifier onlyWhitelistedChain(uint64 _destinationChainSelector) {
         if (!whitelistedChains[_destinationChainSelector])
-            revert DestinationChainNotWhitelisted(_destinationChainSelector);
+            revert CcipWallet__DestinationChainNotWhitelisted(_destinationChainSelector);
         _;
     }
 
@@ -105,7 +105,7 @@ contract CcipWallet is OwnerIsCreator {
         uint256 fees = router.getFee(_destinationChainSelector, evm2AnyMessage);
 
         if (fees > linkToken.balanceOf(address(this)))
-            revert NotEnoughBalance(linkToken.balanceOf(address(this)), fees);
+            revert CcipWallet__NotEnoughBalance(linkToken.balanceOf(address(this)), fees);
 
         // approve the Router to transfer LINK tokens on contract's behalf. It will spend the fees in LINK
         linkToken.approve(address(router), fees);
@@ -165,7 +165,7 @@ contract CcipWallet is OwnerIsCreator {
         uint256 fees = router.getFee(_destinationChainSelector, evm2AnyMessage);
 
         if (fees > address(this).balance)
-            revert NotEnoughBalance(address(this).balance, fees);
+            revert CcipWallet__NotEnoughBalance(address(this).balance, fees);
 
         // approve the Router to spend tokens on contract's behalf. It will spend the amount of the given token
         IERC20(_token).approve(address(router), _amount);
@@ -241,17 +241,17 @@ contract CcipWallet is OwnerIsCreator {
         uint256 amount = address(this).balance;
 
         // Revert if there is nothing to withdraw
-        if (amount == 0) revert NothingToWithdraw();
+        if (amount == 0) revert CcipWallet__NothingToWithdraw();
 
         // Attempt to send the funds, capturing the success status and discarding any return data
         (bool sent, ) = _beneficiary.call{value: amount}("");
 
         // Revert if the send failed, with information about the attempted transfer
-        if (!sent) revert FailedToWithdrawEth(msg.sender, _beneficiary, amount);
+        if (!sent) revert CcipWallet__FailedToWithdrawEth(msg.sender, _beneficiary, amount);
     }
 
     /// @notice Allows the owner of the contract to withdraw all tokens of a specific ERC20 token.
-    /// @dev This function reverts with a 'NothingToWithdraw' error if there are no tokens to withdraw.
+    /// @dev This function reverts with a 'CcipWallet__NothingToWithdraw' error if there are no tokens to withdraw.
     /// @param _beneficiary The address to which the tokens will be sent.
     /// @param _token The contract address of the ERC20 token to be withdrawn.
     function withdrawToken(
@@ -262,7 +262,7 @@ contract CcipWallet is OwnerIsCreator {
         uint256 amount = IERC20(_token).balanceOf(address(this));
 
         // Revert if there is nothing to withdraw
-        if (amount == 0) revert NothingToWithdraw();
+        if (amount == 0) revert CcipWallet__NothingToWithdraw();
 
         IERC20(_token).transfer(_beneficiary, amount);
     }
