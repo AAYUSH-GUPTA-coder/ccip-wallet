@@ -12,16 +12,25 @@ import {Client} from "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/Client.s
 import {IERC20} from "@chainlink/contracts-ccip/src/v0.8/vendor/openzeppelin-solidity/v4.8.0/token/ERC20/IERC20.sol";
 import {LinkTokenInterface} from "@chainlink/contracts/src/v0.8/interfaces/LinkTokenInterface.sol";
 
-
 contract CcipWallet is OwnerIsCreator {
     // Custom errors to provide more descriptive revert messages.
-    error CcipWallet__NotEnoughBalance(uint256 currentBalance, uint256 calculatedFees); // Used to make sure contract has enough balance to cover the fees.
+    error CcipWallet__NotEnoughBalance(
+        uint256 currentBalance,
+        uint256 calculatedFees
+    ); // Used to make sure contract has enough balance to cover the fees.
     error CcipWallet__NothingToWithdraw(); // Used when trying to withdraw Ether but there's nothing to withdraw.
-    error CcipWallet__FailedToWithdrawEth(address owner, address target, uint256 value); // Used when the withdrawal of Ether fails.
-    error CcipWallet__DestinationChainNotWhitelisted(uint64 destinationChainSelector); // Used when the destination chain has not been whitelisted by the contract owner.
+    error CcipWallet__FailedToWithdrawEth(
+        address owner,
+        address target,
+        uint256 value
+    ); // Used when the withdrawal of Ether fails.
+    error CcipWallet__DestinationChainNotWhitelisted(
+        uint64 destinationChainSelector
+    ); // Used when the destination chain has not been whitelisted by the contract owner.
+
     // Event emitted when the tokens are transferred to an account on another chain.
     event TokensTransferred(
-        bytes32 indexed messageId,  // The unique ID of the message.
+        bytes32 indexed messageId, // The unique ID of the message.
         uint64 indexed destinationChainSelector, // The chain selector of the destination chain.
         address receiver, // The address of the receiver on the destination chain.
         address token, // The token address that was transferred.
@@ -37,25 +46,33 @@ contract CcipWallet is OwnerIsCreator {
 
     LinkTokenInterface linkToken;
 
-    /// @notice Constructor initializes the contract with the router address.
-    /// @param _router The address of the router contract.
-    /// @param _link The address of the link contract.
+    /**
+     * @notice Constructor initializes the contract with the router address and LINK Token address
+     * @param _router The address of the router contract.
+     * @param _link The address of the link contract.
+     */
     constructor(address _router, address _link) {
         router = IRouterClient(_router);
         linkToken = LinkTokenInterface(_link);
     }
 
-    /// @dev Modifier that checks if the chain with the given destinationChainSelector is whitelisted.
-    /// @param _destinationChainSelector The selector of the destination chain.
+    /**
+     * @dev Modifier that checks if the chain with the given destinationChainSelector is whitelisted.
+     * @param _destinationChainSelector The selector of the destination chain.
+     */
     modifier onlyWhitelistedChain(uint64 _destinationChainSelector) {
         if (!whitelistedChains[_destinationChainSelector])
-            revert CcipWallet__DestinationChainNotWhitelisted(_destinationChainSelector);
+            revert CcipWallet__DestinationChainNotWhitelisted(
+                _destinationChainSelector
+            );
         _;
     }
 
-    /// @dev Whitelists a chain for transactions.
-    /// @notice This function can only be called by the owner.
-    /// @param _destinationChainSelector The selector of the destination chain to be whitelisted.
+    /**
+     * @dev Whitelists a chain for transactions.
+     * @notice This function can only be called by the owner.
+     * @param _destinationChainSelector The selector of the destination chain to be whitelisted.
+     */
     function whitelistChain(
         uint64 _destinationChainSelector
     ) external onlyOwner {
@@ -71,16 +88,19 @@ contract CcipWallet is OwnerIsCreator {
         whitelistedChains[_destinationChainSelector] = false;
     }
 
-    /// @notice Transfer tokens to receiver on the destination chain.
-    /// @notice pay in LINK.
-    /// @notice the token must be in the list of supported tokens.
-    /// @notice This function can only be called by the owner.
-    /// @dev Assumes your contract has sufficient LINK tokens to pay for the fees.
-    /// @param _destinationChainSelector The identifier (aka selector) for the destination blockchain.
-    /// @param _receiver The address of the recipient on the destination blockchain.
-    /// @param _token token address.
-    /// @param _amount token amount.
-    /// @return messageId The ID of the message that was sent.
+    /**
+     * @notice Transfer tokens to receiver on the destination chain.
+     * @notice CCIP Fees are paid in LINK.
+     * @notice the token must be in the list of supported tokens.
+     * @notice This function can only be called by the owner.
+     * @dev Assumes your contract has sufficient LINK tokens to pay for the fees.
+     *
+     * @param _destinationChainSelector The identifier (aka selector) for the destination blockchain.
+     * @param _receiver The address of the recipient on the destination blockchain.
+     * @param _token token address.
+     * @param _amount token amount.
+     * @return messageId The ID of the message that was sent.
+     */
     function transferTokensPayLINK(
         uint64 _destinationChainSelector,
         address _receiver,
@@ -105,7 +125,10 @@ contract CcipWallet is OwnerIsCreator {
         uint256 fees = router.getFee(_destinationChainSelector, evm2AnyMessage);
 
         if (fees > linkToken.balanceOf(address(this)))
-            revert CcipWallet__NotEnoughBalance(linkToken.balanceOf(address(this)), fees);
+            revert CcipWallet__NotEnoughBalance(
+                linkToken.balanceOf(address(this)),
+                fees
+            );
 
         // approve the Router to transfer LINK tokens on contract's behalf. It will spend the fees in LINK
         linkToken.approve(address(router), fees);
@@ -247,7 +270,12 @@ contract CcipWallet is OwnerIsCreator {
         (bool sent, ) = _beneficiary.call{value: amount}("");
 
         // Revert if the send failed, with information about the attempted transfer
-        if (!sent) revert CcipWallet__FailedToWithdrawEth(msg.sender, _beneficiary, amount);
+        if (!sent)
+            revert CcipWallet__FailedToWithdrawEth(
+                msg.sender,
+                _beneficiary,
+                amount
+            );
     }
 
     /// @notice Allows the owner of the contract to withdraw all tokens of a specific ERC20 token.
@@ -266,4 +294,6 @@ contract CcipWallet is OwnerIsCreator {
 
         IERC20(_token).transfer(_beneficiary, amount);
     }
+
+    
 }
