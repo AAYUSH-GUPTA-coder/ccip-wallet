@@ -13,6 +13,9 @@ import {IERC20} from "@chainlink/contracts-ccip/src/v0.8/vendor/openzeppelin-sol
 import {LinkTokenInterface} from "@chainlink/contracts/src/v0.8/interfaces/LinkTokenInterface.sol";
 
 contract CcipWallet is OwnerIsCreator {
+    ///////////////////////////////////////////
+    //////      ERRORS                   //////
+    //////////////////////////////////////////
     // Custom errors to provide more descriptive revert messages.
     error CcipWallet__NotEnoughBalance(
         uint256 currentBalance,
@@ -28,16 +31,40 @@ contract CcipWallet is OwnerIsCreator {
         uint64 destinationChainSelector
     ); // Used when the destination chain has not been whitelisted by the contract owner.
 
-    // Event emitted when the tokens are transferred to an account on another chain.
+    ///////////////////////////////////////////
+    //////      EVENTS                  //////
+    //////////////////////////////////////////
+    /**
+     * @notice Event emitted when the tokens are transferred to an account on another chain.
+     * @param messageId The unique ID of the message.
+     * @param destinationChainSelector The chain selector of the destination chain.
+     * @param receiver The address of the receiver on the destination chain.
+     * @param token The token address that was transferred.
+     * @param tokenAmount The token amount that was transferred.
+     * @param feeToken the token address used to pay CCIP fees.
+     * @param fees The fees paid for sending the message.
+     */
     event TokensTransferred(
-        bytes32 indexed messageId, // The unique ID of the message.
-        uint64 indexed destinationChainSelector, // The chain selector of the destination chain.
-        address receiver, // The address of the receiver on the destination chain.
-        address token, // The token address that was transferred.
-        uint256 tokenAmount, // The token amount that was transferred.
-        address feeToken, // the token address used to pay CCIP fees.
-        uint256 fees // The fees paid for sending the message.
+        bytes32 indexed messageId,
+        uint64 indexed destinationChainSelector,
+        address receiver,
+        address token,
+        uint256 tokenAmount,
+        address feeToken,
+        uint256 fees
     );
+
+    /**
+     * @notice event emitted when NATIVE token is received.
+     * @param sender address of the sender
+     * @param amount amount of native token received
+     * @param data The data that was sent with the transaction
+     */
+    event ReceivedNativeToken(address indexed sender, uint amount, bytes data);
+
+    ///////////////////////////////////////////
+    //////      MAPPING                  //////
+    //////////////////////////////////////////
 
     // Mapping to keep track of whitelisted destination chains.
     mapping(uint64 => bool) public whitelistedChains;
@@ -79,9 +106,11 @@ contract CcipWallet is OwnerIsCreator {
         whitelistedChains[_destinationChainSelector] = true;
     }
 
-    /// @dev Denylists a chain for transactions.
-    /// @notice This function can only be called by the owner.
-    /// @param _destinationChainSelector The selector of the destination chain to be denylisted.
+    /**
+     * @dev Denylists a chain for transactions.
+     * @notice This function can only be called by the owner.
+     * @param _destinationChainSelector The selector of the destination chain to be denylisted.
+     */
     function denylistChain(
         uint64 _destinationChainSelector
     ) external onlyOwner {
@@ -154,16 +183,18 @@ contract CcipWallet is OwnerIsCreator {
         return messageId;
     }
 
-    /// @notice Transfer tokens to receiver on the destination chain.
-    /// @notice Pay in native gas such as ETH on Ethereum or MATIC on Polgon.
-    /// @notice the token must be in the list of supported tokens.
-    /// @notice This function can only be called by the owner.
-    /// @dev Assumes your contract has sufficient native gas like ETH on Ethereum or MATIC on Polygon.
-    /// @param _destinationChainSelector The identifier (aka selector) for the destination blockchain.
-    /// @param _receiver The address of the recipient on the destination blockchain.
-    /// @param _token token address.
-    /// @param _amount token amount.
-    /// @return messageId The ID of the message that was sent.
+    /**
+     * @notice Transfer tokens to receiver on the destination chain.
+     * @notice Pay in native gas such as ETH on Ethereum or MATIC on Polgon.
+     * @notice the token must be in the list of supported tokens.
+     *  @notice This function can only be called by the owner.
+     *  @dev Assumes your contract has sufficient native gas like ETH on Ethereum or MATIC on Polygon.
+     * @param _destinationChainSelector The identifier (aka selector) for the destination blockchain.
+     * @param _receiver The address of the recipient on the destination blockchain.
+     * @param _token token address.
+     * @param _amount token amount.
+     * @return messageId The ID of the message that was sent.
+     */
     function transferTokensPayNative(
         uint64 _destinationChainSelector,
         address _receiver,
@@ -214,13 +245,15 @@ contract CcipWallet is OwnerIsCreator {
         return messageId;
     }
 
-    /// @notice Construct a CCIP message.
-    /// @dev This function will create an EVM2AnyMessage struct with all the necessary information for tokens transfer.
-    /// @param _receiver The address of the receiver.
-    /// @param _token The token to be transferred.
-    /// @param _amount The amount of the token to be transferred.
-    /// @param _feeTokenAddress The address of the token used for fees. Set address(0) for native gas.
-    /// @return Client.EVM2AnyMessage Returns an EVM2AnyMessage struct which contains information for sending a CCIP message.
+    /**
+     * @notice Construct a CCIP message.
+     * @dev This function will create an EVM2AnyMessage struct with all the necessary information for tokens transfer.
+     * @param _receiver The address of the receiver.
+     * @param _token The token to be transferred.
+     * @param _amount The amount of the token to be transferred.
+     * @param _feeTokenAddress The address of the token used for fees. Set address(0) for native gas.
+     * @return Client.EVM2AnyMessage Returns an EVM2AnyMessage struct which contains information for sending a CCIP message.
+     */
     function _buildCCIPMessage(
         address _receiver,
         address _token,
@@ -250,10 +283,19 @@ contract CcipWallet is OwnerIsCreator {
         return evm2AnyMessage;
     }
 
-    /// @notice Fallback function to allow the contract to receive Ether.
-    /// @dev This function has no function body, making it a default function for receiving Ether.
-    /// It is automatically called when Ether is transferred to the contract without any data.
-    receive() external payable {}
+    /**
+     * @notice fallback() function is called to receive NATIVE token if msg.data is NOT empty.
+     */
+    fallback() external payable {
+        emit ReceivedNativeToken(msg.sender, msg.value, msg.data);
+    }
+
+    /**
+     * @notice receive() function is called to receive NATIVE token if msg.data is empty
+     */
+    receive() external payable {
+        emit ReceivedNativeToken(msg.sender, msg.value, "");
+    }
 
     /// @notice Allows the contract owner to withdraw the entire balance of Ether from the contract.
     /// @dev This function reverts if there are no funds to withdraw or if the transfer fails.
@@ -320,6 +362,36 @@ contract CcipWallet is OwnerIsCreator {
             _token,
             _amount,
             address(0)
+        );
+
+        return router.getFee(_destinationChainSelector, evm2AnyMessage);
+    }
+
+    /**
+     * @notice Getter function to get the CCIP fees of the cross-chain transcation in LINK
+     * @param _receiver The address of the recipient on the destination blockchain.
+     * @param _token token address.
+     * @param _amount token amount.
+     * @return messageId The ID of the message that was sent.
+     */
+    function getCcipFeesToken(
+        uint64 _destinationChainSelector,
+        address _receiver,
+        address _token,
+        uint256 _amount
+    )
+        external
+        view
+        onlyWhitelistedChain(_destinationChainSelector)
+        returns (uint256)
+    {
+        // Create an EVM2AnyMessage struct in memory with necessary information for sending a cross-chain message
+        //  address(linkToken) means fees are paid in LINK
+        Client.EVM2AnyMessage memory evm2AnyMessage = _buildCCIPMessage(
+            _receiver,
+            _token,
+            _amount,
+            address(linkToken)
         );
 
         return router.getFee(_destinationChainSelector, evm2AnyMessage);
