@@ -2,7 +2,7 @@
 pragma solidity 0.8.19;
 
 import "forge-std/Script.sol";
-import {Helper} from "./Helper.s.sol";
+import {Helper} from "./Helper.sol";
 import {CcipWallet} from "../src/CcipWallet.sol";
 import {Client} from "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/Client.sol";
 
