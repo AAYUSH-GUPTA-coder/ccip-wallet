@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import "forge-std/Script.sol";
-import "./Helper.sol";
+import {Script} from "forge-std/Script.sol";
+import {Helper} from "./Helper.sol";
 
 interface ICCIPToken {
     function drip(address to) external;
