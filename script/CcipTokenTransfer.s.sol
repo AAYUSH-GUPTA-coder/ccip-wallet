@@ -69,3 +69,6 @@ contract CCIPTokenTransfer is Script, Helper {
         vm.stopBroadcast();
     }
 }
+
+
+// forge script ./script/CcipTokenTransfer.s.sol -vvv --broadcast --rpc-url avalancheFuji --sig "run(uint8,uint8,address,address,uint256,uint8)" -- 2 0 0x16fA7AEb965b7292E1b7B140D6bcd849511cC343 0xD21341536c5cF5EB1bcb58f6723cE26e8D8E90e4 100 0
