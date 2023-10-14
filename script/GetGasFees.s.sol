@@ -24,8 +24,6 @@ contract CCIPTokenTransfer is Script, Helper {
         );
         (, , , uint64 destinationChainId) = getConfigFromNetwork(destination);
 
-        IERC20(tokenToSend).approve(sourceRouter, amount);
-
         Client.EVMTokenAmount[]
             memory tokensToSendDetails = new Client.EVMTokenAmount[](1);
         Client.EVMTokenAmount memory tokenToSendDetails = Client
@@ -48,8 +46,8 @@ contract CCIPTokenTransfer is Script, Helper {
         console.log("Fees for this transcation is");
         console.log(fees);
 
-        // return fees;
-
         vm.stopBroadcast();
     }
 }
+
+// forge script ./script/GetGasFees.s.sol -vvv --broadcast --rpc-url avalancheFuji --sig "run(uint8,uint8,address,address,uint256,uint8)" -- 2 0 0x16fA7AEb965b7292E1b7B140D6bcd849511cC343 0x0b9d5D9136855f6FEc3c0993feE6E9CE8a297846 100 0
