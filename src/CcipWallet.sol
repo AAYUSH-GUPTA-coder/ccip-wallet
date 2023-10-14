@@ -1,6 +1,7 @@
 /**
  * @title A smart contract wallet that allows users to transfer their tokens to a different account in a different or the same chain in a single execution using CCIP
  * @author Aayush Gupta Twitter: @Aayush_gupta_ji
+ * contract address : 0xaEfea6a5a5D33976920aD4cb880edb188d85ea53 (old contract address without Balance getter functions)
  */
 
 // SPDX-License-Identifier: MIT
@@ -402,5 +403,13 @@ contract CcipWallet is OwnerIsCreator {
         );
 
         return router.getFee(_destinationChainSelector, evm2AnyMessage);
+    }
+
+    /**
+     * @notice function to get the balance of ERC20 Tokens
+     * @return token_balance of the smart contract
+     */
+    function getTokenBalance(address _token) external view returns (uint256) {
+        return IERC20(_token).balanceOf(address(this));
     }
 }
